@@ -1,0 +1,1 @@
+{"virtualbox":{"/opt/db":{"create":true,"guestpath":"/opt/db","hostpath":"/home/jansen/Documents/CompNuvem/cloud-task-manager/db","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"/home/jansen/Documents/CompNuvem/cloud-task-manager","disabled":false,"__vagrantfile":true}}}
