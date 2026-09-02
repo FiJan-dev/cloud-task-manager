@@ -1,1 +1,0 @@
-{"virtualbox":{"/opt/db":{"create":true,"guestpath":"/opt/db","hostpath":"C:/Users/Rafael/Documents/cloud/cloud-task-manager/db","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"C:/Users/Rafael/Documents/cloud/cloud-task-manager","disabled":false,"__vagrantfile":true}}}
