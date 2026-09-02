@@ -13,7 +13,7 @@ Vagrant.configure("2") do |config|
             ip: "10.0.1.10",
             virtualbox__intnet: "intnet1"
         
-            frontend.vm.network "forwarded_port", guest: 80, host: 8080
+        frontend.vm.network "forwarded_port", guest: 80, host: 8080
         frontend.vm.network "forwarded_port", guest: 443, host: 8443
         
         frontend.vm.synced_folder "./frontend", "/opt/frontend", create: true
