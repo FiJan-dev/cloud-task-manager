@@ -47,6 +47,7 @@ Vagrant.configure("2") do |config|
             vb.name = "proj-backend"
             vb.memory = 2048
             vb.cpus = 2
+
         end 
 
         backend.vm.provision "shell",
@@ -69,9 +70,10 @@ Vagrant.configure("2") do |config|
         db.vm.synced_folder "./db", "/opt/db", create: true
 
         db.vm.provider "virtualbox" do |vb|
-        vb.name = "proj-db"
-        vb.memory = 2048
-        vb.cpus = 2
+            vb.name = "proj-db"
+            vb.memory = 2048
+            vb.cpus = 2
+            
         end
 
         db.vm.provision "shell",

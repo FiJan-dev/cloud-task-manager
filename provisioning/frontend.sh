@@ -2,17 +2,26 @@
 
 set -e
 
-echo "================================="
-echo "Configurando VM1 - FrontEnd"
-echo "================================="
+# Separadores simples também ficam legíveis nos logs do Vagrant.
+banner() {
+    echo
+    echo "============================================================"
+    echo "  $1"
+    echo "============================================================"
+    echo
+}
 
-echo "[1/6] Atualizando sistema..."
+trap 'echo; echo "[ERRO] Provisionamento interrompido na linha $LINENO. Confira a saída acima." >&2' ERR
+
+banner "CONFIGURANDO VM1 - FRONTEND"
+
+banner "[1/7] Atualizando sistema..."
+echo "[INFO] Atualizando a lista de pacotes..."
 apt-get update
+echo "[INFO] Aplicando atualizações do sistema..."
 apt-get upgrade -y
 
-echo "======================================"
-echo "[2/6] Instalando ferramentas básicas..."
-echo "======================================"
+banner "[2/7] Instalando ferramentas básicas..."
 
 apt-get install -y \
     curl \
@@ -21,28 +30,25 @@ apt-get install -y \
     ca-certificates \
     gnupg
 
-echo "======================================"
-echo "[3/6] Instalando Nginx..."
-echo "======================================"
+banner "[3/7] Instalando Nginx..."
 
 apt-get install -y nginx
 
+echo "[INFO] Habilitando e iniciando o Nginx..."
 systemctl enable nginx
 systemctl start nginx
 
-echo "======================================"
-echo "[4/6] Instalando Node.js..."
-echo "======================================"
+banner "[4/7] Instalando Node.js..."
 
 # Remove node antigo se existir
+echo "[INFO] Removendo versões anteriores de Node.js e npm, se existirem..."
 apt-get remove -y nodejs npm 2>/dev/null || true
 
+echo "[INFO] Configurando o repositório do Node.js 20..."
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs
 
-echo "======================================"
-echo "[5/6] Verificando instalações..."
-echo "======================================"
+banner "[5/7] Verificando instalações..."
 
 echo "Node:"
 node --version
@@ -53,14 +59,15 @@ npm --version
 echo "nginx:"
 nginx -v
 
-echo "======================================"
-echo "  [6/6] Preparando diretorios..."
-echo "======================================"
+banner "[6/7] Preparando diretório da aplicação..."
 
+echo "[INFO] Preparando diretório e permissões da aplicação..."
 mkdir -p /opt/frontend
 chown -R vagrant:vagrant /opt/frontend
 
-#Config basica Nginx (proxy reverso)
+banner "[7/7] Configurando proxy reverso do Nginx..."
+
+# Configuração básica do Nginx (proxy reverso)
 cat > /etc/nginx/sites-available/todo << 'EOF'
 server {
     listen 80;
@@ -86,11 +93,14 @@ server {
 }
 EOF
 
+echo "[INFO] Ativando o site e removendo a configuração padrão..."
 ln -sf /etc/nginx/sites-available/todo /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
+echo "[INFO] Validando a configuração e recarregando o Nginx..."
 nginx -t && systemctl reload nginx
 
-
-echo "======================================"
-echo "   FRONTEND CONFIGURADO COM SUCESSO"
-echo "======================================"
+banner "FRONTEND CONFIGURADO COM SUCESSO"
+echo "  Diretório: /opt/frontend"
+echo "  Acesso:    http://localhost:8080"
+echo "  API:       http://10.0.1.20:3001"
+echo
