@@ -1,8 +1,11 @@
 "use client"; 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Cadastro() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -12,18 +15,19 @@ export default function Cadastro() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
- const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+ const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setError("");
     setSuccess("");
-
+  
     if (!formData.name.trim()) {
       setError("Nome obrigatório");
       return;
@@ -44,7 +48,36 @@ export default function Cadastro() {
       return;
     }
 
-    setSuccess("Cadastro realizado com sucesso!");
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Erro ao criar conta");
+      }
+      setSuccess("Conta criada com sucesso! Redirecionando para login...");
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
+    
+    } catch (err) {
+      setError("Erro ao criar conta");
+    
+    } finally {
+      setLoading(false);
+    }
+    
   };
 
   return (
@@ -147,9 +180,10 @@ export default function Cadastro() {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
           >
-            Criar conta
+            {loading ? "Criando conta..." : "Criar conta"}
           </button>
         </form>
 

@@ -1,8 +1,12 @@
 "use client"; 
+//@ts-ignore
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -10,29 +14,58 @@ export default function Login() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
- const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+ const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setError("");
     setSuccess("");
 
     if (!formData.email.includes("@")) {
-      setError("E-mail inválido");
+      setError("Insira um email válido.");
       return;
     }
 
     if (!formData.password) {
-      setError("Senha obrigatória");
+      setError("Insira sua senha.");
       return;
     }
 
-    setSuccess("Login realizado com sucesso!");
+    setLoading(true);
+
+    try{
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Ocorreu um erro ao tentar fazer login.");
+        return;
+      }
+
+      setSuccess("Login realizado com sucesso! Redirecionando...");
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      setTimeout(() => {
+        router.push("/tasks");
+      }, 1000);
+
+    } catch (err) {
+      console.error(err);
+      setError("Ocorreu um erro ao tentar fazer login. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

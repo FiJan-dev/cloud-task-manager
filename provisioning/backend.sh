@@ -48,11 +48,6 @@ npm --version
 
 banner "[5/5] Preparando diretório da aplicação..."
 
-# Desativa a sincronização usada pela configuração anterior, se existir.
-if [ -f /etc/systemd/system/backend-sync.service ]; then
-    systemctl disable --now backend-sync
-fi
-
 # Executado após o Vagrant montar as pastas compartilhadas, inclusive em novos boots.
 mountpoint -q /opt/backend || {
     echo "[ERRO] /opt/backend não está montado; instalação cancelada." >&2
