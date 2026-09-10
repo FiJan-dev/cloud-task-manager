@@ -57,7 +57,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(data.user));
 
       setTimeout(() => {
-        router.push("/tasks");
+        router.push("/tarefas");
       }, 1000);
 
     } catch (err) {
@@ -131,9 +131,10 @@ export default function Login() {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700"
           >
-            Entrar
+            {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
 

@@ -147,7 +147,7 @@ server {
 
     # Proxy para a API (Application Server)
     location /api/ {
-        proxy_pass http://10.0.1.20:3001/;   # ajuste a porta do Express
+        proxy_pass http://10.0.1.20:3000;   # ajuste a porta do Express
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -166,5 +166,5 @@ nginx -t && systemctl reload nginx
 banner "FRONTEND CONFIGURADO COM SUCESSO"
 echo "  Diretório: /opt/frontend"
 echo "  Acesso:    http://localhost:8080"
-echo "  API:       http://10.0.1.20:3001"
+echo "  API:       http://10.0.1.20:3000"
 echo
