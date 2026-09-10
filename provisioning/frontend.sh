@@ -44,8 +44,8 @@ banner "[4/8] Instalando Node.js..."
 echo "[INFO] Removendo versões anteriores de Node.js e npm, se existirem..."
 apt-get remove -y nodejs npm 2>/dev/null || true
 
-echo "[INFO] Configurando o repositório do Node.js 20..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+echo "[INFO] Configurando o repositório do Node.js 22..."
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
 
 banner "[5/8] Verificando instalações..."
@@ -61,23 +61,32 @@ nginx -v
 
 banner "[6/8] Preparando diretório da aplicação..."
 
-echo "[INFO] Preparando diretório e permissões da aplicação..."
-mkdir -p /opt/frontend-app
-chown -R vagrant:vagrant /opt/frontend-app
+# O código é compartilhado; dependências e build ficam no disco da VM.
+mountpoint -q /opt/frontend || {
+    echo "[ERRO] /opt/frontend não está montado; instalação cancelada." >&2
+    exit 1
+}
 
-echo "[INFO] Copiando o frontend para o armazenamento local da VM..."
-rm -rf /opt/frontend-app/*
-cp -r /opt/frontend/. /opt/frontend-app/
+# Pare a aplicação antes de substituir dependências e gerar o novo build.
+if [ -f /etc/systemd/system/nextjs.service ]; then
+    systemctl stop nextjs
+fi
 
-chown -R vagrant:vagrant /opt/frontend-app
+for directory in node_modules .next; do
+    mkdir -p "/var/lib/frontend/$directory" "/opt/frontend/$directory"
+    chown vagrant:vagrant "/var/lib/frontend/$directory"
+    if ! mountpoint -q "/opt/frontend/$directory"; then
+        mount --bind "/var/lib/frontend/$directory" "/opt/frontend/$directory"
+    fi
+done
 
-cd /opt/frontend-app
+cd /opt/frontend
 
 echo "[INFO] Instalando dependências do frontend..."
-sudo -u vagrant npm install
+sudo -H -u vagrant npm ci
 
 echo "[INFO] Gerando build do Next.js..."
-sudo -u vagrant npm run build
+sudo -H -u vagrant npm run build
 
 banner "[7/8] Configurando serviço do Next.js..."
 
@@ -98,7 +107,7 @@ Type=simple
 #O Next.js será executado pelo usuário
 User=vagrant
 #Define a pasta onde o comando será executado.
-WorkingDirectory=/opt/frontend-app
+WorkingDirectory=/opt/frontend
 #Quando o serviço iniciar, execute npm start
 ExecStart=/usr/bin/npm start
 #Se o processo do Next.js parar, o systemd tenta iniciá-lo novamente
@@ -113,7 +122,7 @@ EOF
 echo "[INFO] Habilitando o serviço do Next.js..."
 systemctl daemon-reload
 systemctl enable nextjs
-systemctl start nextjs
+systemctl restart nextjs
 
 echo "[INFO] Verificando o serviço do Next.js..."
 systemctl is-active --quiet nextjs

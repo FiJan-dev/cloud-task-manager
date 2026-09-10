@@ -24,7 +24,8 @@ Vagrant.configure("2") do |config|
             vb.cpus = 2
         end
 
-        frontend.vm.provision "shell",
+        # Recria as montagens de dependências e build em cada inicialização.
+        frontend.vm.provision "shell", run: "always",
             path: "provisioning/frontend.sh"
     end
 
@@ -50,7 +51,8 @@ Vagrant.configure("2") do |config|
 
         end 
 
-        backend.vm.provision "shell",
+        # Executa após montar as pastas compartilhadas em cada inicialização.
+        backend.vm.provision "shell", run: "always",
             path: "provisioning/backend.sh"
     end
 

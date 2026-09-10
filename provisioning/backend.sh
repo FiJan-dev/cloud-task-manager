@@ -15,31 +15,30 @@ trap 'echo; echo "[ERRO] Provisionamento interrompido na linha $LINENO. Confira 
 
 banner "CONFIGURANDO VM2 - BACKEND"
 
-banner "[1/6] Atualizando sistema..."
+banner "[1/5] Atualizando sistema..."
 echo "[INFO] Atualizando a lista de pacotes..."
 apt-get update
 echo "[INFO] Aplicando atualizações do sistema..."
 apt-get upgrade -y
 
-banner "[2/6] Instalando ferramentas básicas..."
+banner "[2/5] Instalando ferramentas básicas..."
 apt-get install -y \
     curl \
     git \
     build-essential \
     ca-certificates \
-    gnupg \
-    ufw
+    gnupg
 
-banner "[3/6] Instalando Node.js..."
+banner "[3/5] Instalando Node.js..."
 # Remove node antigo se existir
 echo "[INFO] Removendo versões anteriores de Node.js e npm, se existirem..."
 apt-get remove -y nodejs npm 2>/dev/null || true
 
-echo "[INFO] Configurando o repositório do Node.js 20..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+echo "[INFO] Configurando o repositório do Node.js 22..."
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
 
-banner "[4/6] Verificando Node.js..."
+banner "[4/5] Verificando Node.js..."
 
 echo "Node:"
 node --version
@@ -47,30 +46,27 @@ node --version
 echo "NPM:"
 npm --version
 
-banner "[5/6] Configurando firewall..."
+banner "[5/5] Preparando diretório da aplicação..."
 
-echo "[INFO] Aplicando políticas e regras de acesso do UFW..."
-ufw default deny incoming
-ufw default deny outgoing
+# Desativa a sincronização usada pela configuração anterior, se existir.
+if [ -f /etc/systemd/system/backend-sync.service ]; then
+    systemctl disable --now backend-sync
+fi
 
-ufw allow in on enp0s8
-ufw allow out on enp0s8
+# Executado após o Vagrant montar as pastas compartilhadas, inclusive em novos boots.
+mountpoint -q /opt/backend || {
+    echo "[ERRO] /opt/backend não está montado; instalação cancelada." >&2
+    exit 1
+}
 
-ufw allow in on enp0s3 to any port 22 proto tcp
+mkdir -p /var/lib/backend-node_modules /opt/backend/node_modules
+chown vagrant:vagrant /var/lib/backend-node_modules
+if ! mountpoint -q /opt/backend/node_modules; then
+    mount --bind /var/lib/backend-node_modules /opt/backend/node_modules
+fi
 
-ufw allow from 10.0.1.10 to any port 8080 proto tcp
+echo "[INFO] Instalando dependências em /opt/backend, com node_modules no disco da VM..."
+cd /opt/backend
+sudo -H -u vagrant npm ci
 
-echo "[INFO] Ativando o firewall..."
-ufw --force enable
-
-banner "[6/6] Preparando diretório da aplicação..."
-
-echo "[INFO] Preparando diretório e permissões da aplicação..."
-mkdir -p /opt/backend
-chown -R vagrant:vagrant /opt/backend
-
-banner "BACKEND CONFIGURADO COM SUCESSO"
-echo "  Diretório: /opt/backend"
-echo "  Host:      10.0.1.20"
-echo
-echo "[PRÓXIMO PASSO] Lembre-se de configurar a DATABASE_URL apontando para 10.0.1.30"
+echo "[INFO] Dependências instaladas. Diretório de trabalho: /opt/backend"

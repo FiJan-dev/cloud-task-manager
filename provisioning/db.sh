@@ -15,24 +15,23 @@ trap 'echo; echo "[ERRO] Provisionamento interrompido na linha $LINENO. Confira 
 
 banner "CONFIGURANDO VM3 - DATABASE"
 
-banner "[1/6] Atualizando sistema..."
+banner "[1/5] Atualizando sistema..."
 echo "[INFO] Atualizando a lista de pacotes..."
 apt-get update
 echo "[INFO] Aplicando atualizações do sistema..."
 apt-get upgrade -y
 
-banner "[2/6] Instalando PostgreSQL..."
+banner "[2/5] Instalando PostgreSQL..."
 apt-get install -y \
     postgresql \
-    postgresql-contrib \
-    ufw
+    postgresql-contrib
 
-banner "[3/6] Ativando PostgreSQL..."
+banner "[3/5] Ativando PostgreSQL..."
 
 systemctl enable postgresql
 systemctl start postgresql
 
-banner "[4/6] Configurando acesso remoto e usuário..."
+banner "[4/5] Configurando acesso remoto e usuário..."
 
 echo "[INFO] Configurando conexões PostgreSQL na rede interna..."
 # Permitir conexões da rede interna
@@ -50,25 +49,8 @@ sudo -u postgres psql -c "CREATE USER todouser WITH PASSWORD 'todo123';" || true
 sudo -u postgres psql -c "CREATE DATABASE tododb OWNER todouser;" || true
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE tododb TO todouser;" || true
 
-banner "[5/6] Configurando firewall..."
-
-echo "[INFO] Aplicando políticas e regras de acesso do UFW..."
-ufw default deny incoming
-ufw default deny outgoing
-
-ufw allow out on enp0s8
-
-ufw allow from 10.0.1.20 to any port 5432 proto tcp
-
-ufw allow in on enp0s3 to any port 22 proto tcp
-
-echo "[INFO] Ativando o firewall..."
-ufw --force enable
-
-banner "[6/6] Verificando PostgreSQL e preparando diretório..."
+banner "[5/5] Verificando PostgreSQL e preparando diretório..."
 sudo -u postgres psql --version
-echo "[INFO] Exibindo o estado e as regras do firewall..."
-ufw status verbose
 
 echo "[INFO] Preparando diretório e permissões da aplicação..."
 mkdir -p /opt/db
