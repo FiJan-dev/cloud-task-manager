@@ -51,7 +51,7 @@ export default function Cadastro() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/auth/register", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,6 +65,7 @@ export default function Cadastro() {
 
       if (!response.ok) {
         setError(data.message || "Erro ao criar conta");
+        return;
       }
       setSuccess("Conta criada com sucesso! Redirecionando para login...");
       setTimeout(() => {
@@ -73,6 +74,7 @@ export default function Cadastro() {
     
     } catch (err) {
       setError("Erro ao criar conta");
+      console.error("ERRO:", err);
     
     } finally {
       setLoading(false);
