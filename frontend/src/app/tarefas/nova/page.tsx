@@ -1,18 +1,22 @@
 "use client"; 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function NovaTarefa() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     titulo: "",
     descricao: "",
-    prioridade: "",
+    prioridade: "MEDIUM",
     prazo: "",
-    status: "pendente"
+    status: "PENDING",
   });
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<
     HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -20,7 +24,7 @@ export default function NovaTarefa() {
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setError("");
@@ -54,16 +58,68 @@ export default function NovaTarefa() {
       return;
     }
 
-  setSuccess("Tarefa criada com sucesso!");
+    const storedUserId = localStorage.getItem("userId");
+    const storedUserObj = localStorage.getItem("user");
+
+    let userId = storedUserId;
+
+    if (!userId && storedUserObj) {
+      try {
+        const parsed = JSON.parse(storedUserObj);
+        userId = parsed.id || parsed.userId;
+      } catch (e) {
+        console.error("Erro ao ler user do localStorage", e);
+      }
+    }
+
+    if (!userId) {
+      setError("Usuário não autenticado");
+      router.push("/");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: formData.titulo,
+          description: formData.descricao,
+          priority: formData.prioridade,
+          dueDate: formData.prazo,
+          status: formData.status,
+          userId: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message || "Erro ao criar tarefa.");
+        return;
+      }
+
+      setSuccess("Tarefa criada com sucesso!");
+      setTimeout(() => {
+        router.push("/tarefas");
+      }, 1000);
+    
+    } catch (err) {
+      setError("Erro de conexão com o servidor");
+    
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
+return (
     <main className="min-h-screen bg-gray-100">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-8 py-5">
-          <h1 className="text-2xl font-bold text-gray-900">
-            To Do List
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">To Do List</h1>
 
           <Link
             href="/tarefas"
@@ -77,9 +133,7 @@ export default function NovaTarefa() {
       <div className="mx-auto max-w-4xl px-8 py-12">
         <div className="rounded-2xl bg-white p-10 shadow-sm">
           <div className="mb-10">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Nova tarefa
-            </h2>
+            <h2 className="text-3xl font-bold text-gray-900">Nova tarefa</h2>
 
             <p className="mt-3 text-gray-500">
               Preencha os dados abaixo para criar uma nova tarefa.
@@ -148,12 +202,9 @@ export default function NovaTarefa() {
                   onChange={handleChange}
                   className="w-full rounded-lg border border-gray-300 bg-white px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
-                  <option value="" disabled>
-                    Selecione a prioridade
-                  </option>
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
+                  <option value="LOW">Baixa</option>
+                  <option value="MEDIUM">Média</option>
+                  <option value="HIGH">Alta</option>
                 </select>
               </div>
 
@@ -189,9 +240,8 @@ export default function NovaTarefa() {
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 bg-white px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
-                <option value="pendente">Pendente</option>
-                <option value="em_andamento">Em andamento</option>
-                <option value="concluida">Concluída</option>
+                <option value="PENDING">Pendente</option>
+                <option value="COMPLETED">Concluída</option>
               </select>
             </div>
 
@@ -205,9 +255,10 @@ export default function NovaTarefa() {
 
               <button
                 type="submit"
-                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+                disabled={loading}
+                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
-                Criar tarefa
+                {loading ? "Salvando..." : "Criar tarefa"}
               </button>
             </div>
           </form>

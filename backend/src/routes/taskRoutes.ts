@@ -7,7 +7,7 @@ const router = Router();
 // GETTERS:
 router.get("/", async (req: Request, res: Response) => {
     try {
-        const userId = req.query;
+        const { userId } = req.query;
 
         if (!userId || typeof userId !== "string") {
             return res.status(400).json({ message: "ID do usuário inválido." });
@@ -38,7 +38,7 @@ router.post("/", async (req: Request, res: Response) => {
                 description: description || "",
                 status: status || "PENDING",
                 priority: priority || "MEDIUM",
-                dueDate: new Date(dueDate),
+                dueDate: dueDate ? new Date(dueDate) : new Date(),
                 userId,
             },
         });
@@ -56,7 +56,7 @@ router.put("/:id", async (req: Request, res: Response) => {
         const { id } = req.params;
         const { title, description, status, priority, dueDate } = req.body;
 
-        if ( typeof id !== "string") {
+        if (!id || typeof id !== "string") {
             return res.status(400).json({ message: "ID da tarefa inválido." });
         }
 
@@ -81,11 +81,12 @@ router.delete("/:id", async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        if (typeof id !== "string") {
+        if (!id || typeof id !== "string") {
             return res.status(400).json({ message: "ID da tarefa inválido." });
         }
 
         await prisma.task.delete({ where: { id: id as string } });
+        return res.status(200).json({ message: "Tarefa deletada com sucesso." });
     } catch (error) {
         return res.status(500).json({ message: "Erro interno no servidor." });
     }
