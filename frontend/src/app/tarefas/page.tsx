@@ -59,7 +59,8 @@ export default function Tarefas() {
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
-    router.push("/login");
+    localStorage.removeItem("user");
+    router.replace("/");
   };
 
   const handleConcluir = async (id: string) => {

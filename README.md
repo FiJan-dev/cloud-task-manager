@@ -1,6 +1,33 @@
 # cloud-task-manager
 Aplicação To-Do List em arquitetura distribuída de 3 camadas (Next.js, Express, PostgreSQL) implantada em 3 VMs separadas (Ubuntu Server / Nginx).
 
+Execute `vagrant up` para subir as VMs na ordem banco → backend → frontend
+com o VirtualBox. O backend cria `backend/.env` a partir de `.env.example`
+se o arquivo ainda não existir, gera o cliente Prisma e aplica o schema antes
+de iniciar a API. Um `.env` existente é preservado; para o banco padrão deste
+projeto, a conexão deve ser:
+
+```dotenv
+DATABASE_URL="postgresql://todouser:todo123@10.0.1.30:5432/tododb?schema=public"
+```
+
+Se uma instalação anterior subiu mas apresenta “Erro interno no servidor”,
+confira o `.env` e reaplique o provisionamento com o banco disponível:
+
+```sh
+vagrant up db
+vagrant provision db
+vagrant up backend --provision
+vagrant up frontend --provision
+```
+
+O provisionamento agora para se o schema não puder ser aplicado, sem aceitar
+automaticamente alterações que percam dados. Para consultar a causa de erros da API:
+
+```sh
+vagrant ssh backend -c "sudo journalctl -u todo-backend -n 100 --no-pager"
+```
+
 O backend executa diretamente em `/opt/backend`, compartilhado com `backend/`
 no computador. As alterações no código aparecem imediatamente na VM, sem cópia.
 
@@ -28,13 +55,11 @@ vagrant ssh backend
 cd /opt/backend
 ```
 
-O servidor ainda não inicia automaticamente: o `package.json` referencia
-`src/server.ts`, que ainda precisa ser implementado. Configure a conexão com o
-PostgreSQL em `10.0.1.30` quando implementar a aplicação.
+O serviço `todo-backend` inicia automaticamente com `tsx src/server.ts` e atende
+na porta 3000. O provisionamento verifica a resposta de `/health` após iniciá-lo.
 
-Se você usou a configuração anterior, o provisionamento desativa `backend-sync`.
-A cópia antiga em `/opt/backend-app` é preservada, mas deixa de ser usada;
-um eventual `.env` nessa cópia precisa ser transferido manualmente.
+Se você usou a cópia antiga em `/opt/backend-app`, transfira manualmente um
+eventual `.env` dessa cópia para `/opt/backend`.
 
 O frontend também executa diretamente na pasta compartilhada `/opt/frontend`.
 O script `provisioning/frontend.sh` instala Node.js 22, monta `node_modules` e

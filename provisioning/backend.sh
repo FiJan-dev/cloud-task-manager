@@ -38,7 +38,7 @@ echo "[INFO] Configurando o repositório do Node.js 22..."
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y nodejs
 
-banner "[4/5] Verificando Node.js..."
+banner "[4/6] Verificando Node.js..."
 
 echo "Node:"
 node --version
@@ -54,6 +54,10 @@ mountpoint -q /opt/backend || {
     exit 1
 }
 
+if [ -f /etc/systemd/system/todo-backend.service ]; then
+    systemctl stop todo-backend
+fi
+
 mkdir -p /var/lib/backend-node_modules /opt/backend/node_modules
 chown vagrant:vagrant /var/lib/backend-node_modules
 if ! mountpoint -q /opt/backend/node_modules; then
@@ -62,10 +66,18 @@ fi
 
 echo "[INFO] Instalando dependências em /opt/backend, com node_modules no disco da VM..."
 cd /opt/backend
+if [ ! -f .env ]; then
+    echo "[INFO] Criando .env com a conexão do banco Vagrant..."
+    sudo -H -u vagrant cp .env.example .env
+fi
 sudo -H -u vagrant npm ci
 
+echo "[INFO] Gerando cliente Prisma..."
+sudo -H -u vagrant ./node_modules/.bin/prisma generate
+
 echo "[INFO] Aplicando schema do Prisma no banco de dados..."
-sudo -H -u vagrant npx prisma db push --accept-data-loss || echo "[AVISO] O banco pode ainda estar inicializando, mas o serviço tentará conectar."
+# Uma falha deve interromper o provisionamento: iniciar a API não cria tabelas.
+sudo -H -u vagrant ./node_modules/.bin/prisma db push
 
 banner "[6/6] Configurando o serviço do backend..."
 
@@ -79,7 +91,7 @@ After=network.target
 Type=simple
 User=vagrant
 WorkingDirectory=/opt/backend
-ExecStart=/usr/bin/npx tsx src/server.ts
+ExecStart=/opt/backend/node_modules/.bin/tsx src/server.ts
 Restart=on-failure
 RestartSec=5
 
@@ -91,5 +103,17 @@ echo "[INFO] Recarregando systemd e iniciando o serviço..."
 systemctl daemon-reload
 systemctl enable todo-backend
 systemctl restart todo-backend
+
+echo "[INFO] Aguardando resposta do backend..."
+for attempt in {1..30}; do
+    if curl --fail --silent --max-time 2 http://127.0.0.1:3000/health; then
+        break
+    fi
+    if [ "$attempt" -eq 30 ]; then
+        journalctl -u todo-backend -n 50 --no-pager
+        exit 1
+    fi
+    sleep 2
+done
 
 echo "[INFO] Dependências instaladas. Diretório de trabalho: /opt/backend"
