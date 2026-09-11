@@ -15,13 +15,13 @@ trap 'echo; echo "[ERRO] Provisionamento interrompido na linha $LINENO. Confira 
 
 banner "CONFIGURANDO VM2 - BACKEND"
 
-banner "[1/5] Atualizando sistema..."
+banner "[1/6] Atualizando sistema..."
 echo "[INFO] Atualizando a lista de pacotes..."
 apt-get update
 echo "[INFO] Aplicando atualizações do sistema..."
 apt-get upgrade -y
 
-banner "[2/5] Instalando ferramentas básicas..."
+banner "[2/6] Instalando ferramentas básicas..."
 apt-get install -y \
     curl \
     git \
@@ -29,7 +29,7 @@ apt-get install -y \
     ca-certificates \
     gnupg
 
-banner "[3/5] Instalando Node.js..."
+banner "[3/6] Instalando Node.js..."
 # Remove node antigo se existir
 echo "[INFO] Removendo versões anteriores de Node.js e npm, se existirem..."
 apt-get remove -y nodejs npm 2>/dev/null || true
@@ -46,7 +46,7 @@ node --version
 echo "NPM:"
 npm --version
 
-banner "[5/5] Preparando diretório da aplicação..."
+banner "[5/6] Preparando diretório da aplicação..."
 
 # Executado após o Vagrant montar as pastas compartilhadas, inclusive em novos boots.
 mountpoint -q /opt/backend || {
@@ -63,5 +63,33 @@ fi
 echo "[INFO] Instalando dependências em /opt/backend, com node_modules no disco da VM..."
 cd /opt/backend
 sudo -H -u vagrant npm ci
+
+echo "[INFO] Aplicando schema do Prisma no banco de dados..."
+sudo -H -u vagrant npx prisma db push --accept-data-loss || echo "[AVISO] O banco pode ainda estar inicializando, mas o serviço tentará conectar."
+
+banner "[6/6] Configurando o serviço do backend..."
+
+echo "[INFO] Criando arquivo de serviço no Systemd..."
+cat <<EOF > /etc/systemd/system/todo-backend.service
+[Unit]
+Description=To Do List Backend (Node.js)
+After=network.target
+
+[Service]
+Type=simple
+User=vagrant
+WorkingDirectory=/opt/backend
+ExecStart=/usr/bin/npx tsx src/server.ts
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "[INFO] Recarregando systemd e iniciando o serviço..."
+systemctl daemon-reload
+systemctl enable todo-backend
+systemctl restart todo-backend
 
 echo "[INFO] Dependências instaladas. Diretório de trabalho: /opt/backend"
