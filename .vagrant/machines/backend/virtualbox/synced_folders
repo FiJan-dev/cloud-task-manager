@@ -1,1 +1,0 @@
-{"virtualbox":{"/opt/backend":{"create":true,"guestpath":"/opt/backend","hostpath":"/home/jansen/Documents/CompNuvem/cloud-task-manager/backend","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"/home/jansen/Documents/CompNuvem/cloud-task-manager","disabled":false,"__vagrantfile":true}}}
