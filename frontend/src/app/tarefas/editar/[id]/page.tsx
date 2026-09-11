@@ -1,31 +1,71 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function EditarTarefa() {
-  const params = useParams<{ id: string }>(); 
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
   const id = params.id;
 
   const [formData, setFormData] = useState({
-    titulo: "Minha tarefa",
-    descricao: "Descrição da minha tarefa",
-    prioridade: "media",
-    prazo: "2026-09-10",
-    status: "pendente"
+    titulo: "",
+    descricao: "",
+    prioridade: "",
+    prazo: "",
+    status: "",
   });
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<
-    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  useEffect(() => {
+    const buscarTarefa = async () => {
+      try {
+        const response = await fetch(`/api/tasks/${id}`);
+
+        if (!response.ok) {
+          throw new Error("Erro ao buscar tarefa");
+        }
+
+        const tarefa = await response.json();
+
+        setFormData({
+          titulo: tarefa.title,
+          descricao: tarefa.description || "",
+          prioridade: tarefa.priority,
+          prazo: tarefa.dueDate
+            ? tarefa.dueDate.substring(0, 10)
+            : "",
+          status: tarefa.status,
+        });
+      } catch (error) {
+        setError("Não foi possível carregar a tarefa.");
+      }
+    };
+
+    if (id) {
+      buscarTarefa();
+    }
+  }, [id]);
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
   };
 
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.SyntheticEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
     setError("");
@@ -54,12 +94,39 @@ export default function EditarTarefa() {
 
     const dataHoje = `${ano}-${mes}-${dia}`;
 
-    if (formData.prazo <  dataHoje) {
+    if (formData.prazo < dataHoje) {
       setError("O prazo não pode ser anterior ao dia atual");
       return;
     }
 
-  setSuccess(`Tarefa #${id} editada com sucesso!`);
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: formData.titulo,
+          description: formData.descricao,
+          priority: formData.prioridade,
+          dueDate: formData.prazo,
+          status: formData.status,
+        }),
+      });
+
+      if (!response.ok) {
+        setError("Erro ao editar tarefa.");
+        return;
+      }
+
+      setSuccess(`Tarefa editada com sucesso!`);
+
+      setTimeout(() => {
+        router.push("/tarefas");
+      }, 1000);
+    } catch (error) {
+      setError("Erro de conexão com o servidor.");
+    }
   };
 
   return (
@@ -97,11 +164,13 @@ export default function EditarTarefa() {
                 {error}
               </div>
             )}
+
             {success && (
               <div className="rounded-lg bg-green-100 px-4 py-3 text-sm text-green-700">
                 {success}
               </div>
             )}
+
             <div>
               <label
                 htmlFor="titulo"
@@ -113,7 +182,7 @@ export default function EditarTarefa() {
               <input
                 id="titulo"
                 type="text"
-                value={formData.titulo} 
+                value={formData.titulo}
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
@@ -130,7 +199,7 @@ export default function EditarTarefa() {
               <textarea
                 id="descricao"
                 rows={6}
-                value={formData.descricao} 
+                value={formData.descricao}
                 onChange={handleChange}
                 className="w-full resize-none rounded-lg border border-gray-300 px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               />
@@ -151,9 +220,9 @@ export default function EditarTarefa() {
                   onChange={handleChange}
                   className="w-full rounded-lg border border-gray-300 bg-white px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
+                  <option value="LOW">Baixa</option>
+                  <option value="MEDIUM">Média</option>
+                  <option value="HIGH">Alta</option>
                 </select>
               </div>
 
@@ -168,7 +237,7 @@ export default function EditarTarefa() {
                 <input
                   id="prazo"
                   type="date"
-                  value={formData.prazo} 
+                  value={formData.prazo}
                   onChange={handleChange}
                   className="w-full rounded-lg border border-gray-300 px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
@@ -189,9 +258,8 @@ export default function EditarTarefa() {
                 onChange={handleChange}
                 className="w-full rounded-lg border border-gray-300 bg-white px-5 py-4 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
-                <option value="pendente">Pendente</option>
-                <option value="em_andamento">Em andamento</option>
-                <option value="concluida">Concluída</option>
+                <option value="PENDING">Pendente</option>
+                <option value="COMPLETED">Concluída</option>
               </select>
             </div>
 

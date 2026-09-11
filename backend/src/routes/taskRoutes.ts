@@ -23,6 +23,29 @@ router.get("/", async (req: Request, res: Response) => {
     }
 });
 
+// GETTER: buscar uma tarefa pelo ID
+router.get("/:id", async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        if (!id || typeof id !== "string") {
+            return res.status(400).json({ message: "ID da tarefa inválido." });
+        }
+
+        const task = await prisma.task.findUnique({
+            where: { id },
+        });
+
+        if (!task) {
+            return res.status(404).json({ message: "Tarefa não encontrada." });
+        }
+
+        return res.status(200).json(task);
+    } catch (error) {
+        return res.status(500).json({ message: "Erro interno no servidor." });
+    }
+});
+
 // POSTS:
 router.post("/", async (req: Request, res: Response) => {
     try {
